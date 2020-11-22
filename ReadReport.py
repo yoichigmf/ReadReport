@@ -25,11 +25,17 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
+
+from qgis.core import *
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 from .ReadReport_dialog import ReadReportDialog
 import os.path
+
+import openpyxl
+import os
+import time
 
 
 class ReadReport:
@@ -197,4 +203,68 @@ class ReadReport:
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
+            
+          
+    
+            
+
+            #try:  
+            if 1:
+              #  selected layer to store
+                  tgLayer = self.dlg.mMapLayerComboBox.currentLayer()
+            
+                  if tgLayer is None:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤが指定されていません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤが指定されていません", level=Qgis.Warning)   
+                       return
+                  
+            
+                  caps = tgLayer.dataProvider().capabilities()
+                  
+                  if not caps & QgsVectorDataProvider.AddFeatures:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤにデータ追加できません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤにデータ追加できません", level=Qgis.Warning)   
+                       return               
+                                
+                  rdExcel = self.dlg.mQgsFileWidget.filePath()
+            
+                  if rdExcel is None:
+                       QgsMessageLog.logMessage(u"error:Excelファイルが指定されていません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage(u"Error", "error:Excelファイルが指定されていません", level=Qgis.Warning)   
+                       return
+            
+                  wb = openpyxl.load_workbook(rdExcel)
+            
+                  ws = wb.worksheets[0]
+            
+            #    2行目から取得
+                  for row in ws.iter_rows(min_row=2):
+                       attrs = []
+                       for  cell in row:
+                            attrs.append(cell.value)
+                       
+
+ 
+                       if attrs[2]  == "location":
+                            QgsMessageLog.logMessage("record:" + attrs[0]+ ":" + attrs[1] + ":" + attrs[2], 'ReadReport', level=Qgis.Info)
+                
+                            feat = QgsFeature(tgLayer.fields())
+                            feat.setAttribute(u"日付",attrs[0])
+                            feat.setAttribute(2,attrs[1])                        
+                            feat.setAttribute(3,attrs[3])                        
+                            feat.setAttribute(4,float(attrs[5]))   
+                            feat.setAttribute(5,float(attrs[6]))   
+                            
+                            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(attrs[6]), float(attrs[5]))))
+                            (res, outFeats) = tgLayer.dataProvider().addFeatures([feat])
+                            
+                            if res:
+                                 QgsMessageLog.logMessage("record out:" + str(outFeats[0][0])+ ":" + outFeats[0][1], 'ReadReport', level=Qgis.Info)
+                                        
+            else:              
+            #except:  
+                  QgsMessageLog.logMessage(u"error:ファイルIOエラー" , 'ReadReport', level=Qgis.Warning)  
+                  self.iface.messageBar().pushMessage(u"Error", "error:ファイルIOエラー", level=Qgis.Warning)   
+                  return
+            
             pass
