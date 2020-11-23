@@ -34,6 +34,7 @@ from .ReadReport_dialog import ReadReportDialog
 import os.path
 
 import openpyxl
+from openpyxl_image_loader import SheetImageLoader
 import os
 import time
 from datetime import datetime
@@ -170,10 +171,17 @@ class ReadReport:
         icon_path = ':/plugins/ReadReport/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Excelファイル読み込み'),
+            text=self.tr(u'災害情報Excelファイル読み込み'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
+
+        self.add_action(
+            icon_path,
+            text=self.tr(u'道路調査Excelファイル読み込み'),
+            callback=self.runDouro,
+            parent=self.iface.mainWindow())
+            
         # will be set False in run()
         self.first_start = True
 
@@ -203,7 +211,7 @@ class ReadReport:
         for rec in loclist:
         
             if rec[0] == user:
-                  QgsMessageLog.logMessage("compare "+ dtime + "and " + rec[1] , 'ReadReport', level=Qgis.Info)  
+                  #QgsMessageLog.logMessage("compare "+ dtime + "and " + rec[1] , 'ReadReport', level=Qgis.Info)  
 
                   dt2 = datetime.strptime(rec[1], '%Y/%m/%d %H:%M:%S')
                   if ret < 0 :
@@ -216,7 +224,7 @@ class ReadReport:
                             dst1 = dt1 - cdate
                             dst2 = dt1 - dt2
                             
-                            QgsMessageLog.logMessage("compare "+ dtime + "and " + rec[1] + " dst1:" + str(dst1.total_seconds())+" dst2:"+ str(dst2.total_seconds()), 'ReadReport', level=Qgis.Info)                           
+                            #QgsMessageLog.logMessage("compare "+ dtime + "and " + rec[1] + " dst1:" + str(dst1.total_seconds())+" dst2:"+ str(dst2.total_seconds()), 'ReadReport', level=Qgis.Info)                           
                             
                             if dst2.total_seconds() > 0:
                                  if dst1.total_seconds() > dst2.total_seconds():
@@ -227,6 +235,19 @@ class ReadReport:
         
         return ret
         
+    def runDouro(self):
+        """Run method that performs all the real work"""
+
+        # Create the dialog with elements (after translation) and keep reference
+        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
+        if self.first_start == True:
+            self.first_start = False
+            self.dlg = ReadReportDialog()
+
+        # show the dialog
+        self.dlg.show()
+        # Run the dialog event loop
+        result = self.dlg.exec_()
         
     def run(self):
         """Run method that performs all the real work"""
@@ -248,7 +269,10 @@ class ReadReport:
             
           
     
+            prjpath = QgsProject.instance().absolutePath() 
             
+            income_path = "income/images/"
+            imgpath = prjpath + "/" + income_path
 
             #try:  
             if 1:
@@ -309,15 +333,32 @@ class ReadReport:
                        self.iface.messageBar().pushMessage(u"Error", "error:Excelファイルが指定されていません", level=Qgis.Warning)   
                        return
             
+            
+                  exf = rdExcel.split('\\')
+                  
+                  #    excel file name
+                  exfname = exf[-1]
+                  
+                  
+                  #  excel work book
                   wb = openpyxl.load_workbook(rdExcel)
             
+                  #  excel work sheet
                   ws = wb.worksheets[0]
+                  
+                  # image loader for work sheet
+                  
+                  image_loader = SheetImageLoader(ws)
                   
                   #   location list
                   loclist = []
             
+ 
             #    2行目から取得    location
                   for row in ws.iter_rows(min_row=2):
+                  
+                      
+                       
                        attrs = []
                        for  cell in row:
                             attrs.append(cell.value)
@@ -335,7 +376,7 @@ class ReadReport:
                             feat.setAttribute(u"経度",float(attrs[6]))   
                             
                                                         
-                            feat.setAttribute('transact_id',rdExcel)  
+                            feat.setAttribute('transact_id', exfname)  
                             
                             
                             feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(attrs[6]), float(attrs[5]))))
@@ -359,8 +400,12 @@ class ReadReport:
                                  return
                                  
                                  
-            #    2行目から取得    location
+                                 
+            #    2行目から取得    text voice  image  の取得
+                  row_count = 1
                   for row in ws.iter_rows(min_row=2):
+                  
+                       row_count = row_count + 1
                        attrs = []
                        for  cell in row:
                             attrs.append(cell.value)
@@ -388,22 +433,47 @@ class ReadReport:
                                  (res, outFeats) = tgTextLayer.dataProvider().addFeatures([feat])
                             
                        elif attrs[2]  == "image":
+                       
+                            row_img = "D" + str(row_count)
+                            
+                            if image_loader.image_in( row_img ):
+                                   QgsMessageLog.logMessage("image in!: row="+str(row_count) , 'ReadReport', level=Qgis.Info)
+                                   
                             QgsMessageLog.logMessage("record:" + attrs[0]+ ":" + attrs[1] + ":" + attrs[2], 'ReadReport', level=Qgis.Info)
                 
                             feat = QgsFeature(tgImgLayer.fields())
                             
                             nid = self.SearchNid( loclist, attrs[0], attrs[1])
+                            image = image_loader.get(row_img)
                             
                             if nid > 0:
                                  feat.setAttribute(u"日付",attrs[0])
                             
                                  feat.setAttribute('nid',nid)   
                                  feat.setAttribute('user',attrs[1])                        
-                                 feat.setAttribute("kind",attrs[2])                        
-                                 feat.setAttribute("filename",attrs[4])   
-   
+                                 feat.setAttribute("kind",attrs[2])  
+                                 
+                                 fpname = attrs[4][:-5]
+                                 
+                                 pd =  fpname.split( '/' )
+                                 
+                                 tgfname = pd[-1]
+                                 
+                                 setfname = imgpath + tgfname
+                                 QgsMessageLog.logMessage("filename:" + str(nid) + " f:"+ setfname, 'ReadReport', level=Qgis.Info)
+                                 image.save( setfname )
+                                 
+                                 sfilename = income_path + tgfname
+                                                       
+                                 feat.setAttribute("filename",sfilename)   
+                                 #feat.setAttribute("image",image)   
+                                 
+                                 
+                                 
                             
-                                                        
+                                  #income_path = "\income\images\"
+                                  #imgpath = prjpath + income_path
+                        
  
                                  (res, outFeats) = tgImgLayer.dataProvider().addFeatures([feat])
                             
