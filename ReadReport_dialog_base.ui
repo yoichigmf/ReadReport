@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>270</height>
+    <width>380</width>
+    <height>320</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>380</width>
+    <height>320</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>ReadExcelReport</string>
@@ -16,8 +22,8 @@
   <widget class="QDialogButtonBox" name="button_box">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>240</y>
+     <x>-10</x>
+     <y>290</y>
      <width>341</width>
      <height>32</height>
     </rect>
@@ -32,11 +38,17 @@
   <widget class="QTabWidget" name="tabWidget">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>371</width>
-     <height>231</height>
+     <x>0</x>
+     <y>0</y>
+     <width>360</width>
+     <height>280</height>
     </rect>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>360</width>
+     <height>280</height>
+    </size>
    </property>
    <property name="currentIndex">
     <number>0</number>
@@ -48,30 +60,49 @@
     <widget class="QWidget" name="widget" native="true">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>0</x>
        <y>10</y>
-       <width>341</width>
-       <height>191</height>
+       <width>361</width>
+       <height>221</height>
       </rect>
      </property>
+     <widget class="QgsMapLayerComboBox" name="mMapLayerComboBox">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>80</y>
+        <width>251</width>
+        <height>27</height>
+       </rect>
+      </property>
+     </widget>
      <widget class="QgsFileWidget" name="mQgsFileWidget">
       <property name="geometry">
        <rect>
-        <x>0</x>
-        <y>40</y>
+        <x>20</x>
+        <y>20</y>
         <width>331</width>
         <height>27</height>
        </rect>
       </property>
+      <property name="accessibleName">
+       <string>Excel file</string>
+      </property>
+      <property name="dialogTitle">
+       <string>読み込みExcelファイル指定</string>
+      </property>
       <property name="filter">
-       <string comment="*.xlsx"/>
+       <string>*.xlsx</string>
+      </property>
+      <property name="relativeStorage">
+       <enum>QgsFileWidget::Absolute</enum>
       </property>
      </widget>
      <widget class="QLabel" name="label">
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>10</y>
+        <y>0</y>
         <width>271</width>
         <height>16</height>
        </rect>
@@ -80,6 +111,65 @@
        <string>読み込みExcelファイル指定</string>
       </property>
      </widget>
+     <widget class="QLabel" name="label_3">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>60</y>
+        <width>261</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>調査情報格納レイヤ指定</string>
+      </property>
+     </widget>
+     <widget class="QgsMapLayerComboBox" name="mMapLayerComboBox_2">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>130</y>
+        <width>251</width>
+        <height>27</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_4">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>110</y>
+        <width>261</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>テキスト情報格納レイヤ指定</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_5">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>170</y>
+        <width>261</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>画像情報格納レイヤ指定</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QgsMapLayerComboBox" name="mMapLayerComboBox_3">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>200</y>
+       <width>251</width>
+       <height>27</height>
+      </rect>
+     </property>
     </widget>
    </widget>
    <widget class="QWidget" name="config">
@@ -89,35 +179,12 @@
     <widget class="QWidget" name="widget_2" native="true">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>10</y>
+       <x>-10</x>
+       <y>60</y>
        <width>331</width>
        <height>181</height>
       </rect>
      </property>
-     <widget class="QgsMapLayerComboBox" name="mMapLayerComboBox">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>40</y>
-        <width>251</width>
-        <height>27</height>
-       </rect>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_2">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>10</y>
-        <width>261</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>調査情報格納レイヤ指定</string>
-      </property>
-     </widget>
     </widget>
    </widget>
   </widget>

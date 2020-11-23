@@ -36,6 +36,7 @@ import os.path
 import openpyxl
 import os
 import time
+from datetime import datetime
 
 
 class ReadReport:
@@ -186,6 +187,47 @@ class ReadReport:
             self.iface.removeToolBarIcon(action)
 
 
+     #   return fid of location data nearist  dtime+ user   if not found  return -1
+    def SearchNid(self, loclist, dtime, user):
+    
+        ret = -1
+        
+        #ds = split( dtime, ' ' )
+        
+        #dd = split( ds[0], '/' )
+        
+        #tm = split( ds[1], ':' )
+        #dt1 = datetime(int(dd[0], int(dd[1]), int(dd[2]), int(tm[0]),int(tm[1]), int(tm[2]))
+        dt1 = datetime.strptime(dtime, '%Y/%m/%d %H:%M:%S')
+        
+        for rec in loclist:
+        
+            if rec[0] == user:
+                  QgsMessageLog.logMessage("compare "+ dtime + "and " + rec[1] , 'ReadReport', level=Qgis.Info)  
+
+                  dt2 = datetime.strptime(rec[1], '%Y/%m/%d %H:%M:%S')
+                  if ret < 0 :
+    
+                       if dt2 < dt1:
+                            cdate = dt2
+                            ret = rec[2]
+                  else:
+                       if cdate  < dt1:
+                            dst1 = dt1 - cdate
+                            dst2 = dt1 - dt2
+                            
+                            QgsMessageLog.logMessage("compare "+ dtime + "and " + rec[1] + " dst1:" + str(dst1.total_seconds())+" dst2:"+ str(dst2.total_seconds()), 'ReadReport', level=Qgis.Info)                           
+                            
+                            if dst2.total_seconds() > 0:
+                                 if dst1.total_seconds() > dst2.total_seconds():
+                                      cdata = dt2
+                                      ret = rec[2] 
+                       
+                  
+        
+        return ret
+        
+        
     def run(self):
         """Run method that performs all the real work"""
 
@@ -224,7 +266,41 @@ class ReadReport:
                   if not caps & QgsVectorDataProvider.AddFeatures:
                        QgsMessageLog.logMessage("error:調査レポートレイヤにデータ追加できません" , 'ReadReport', level=Qgis.Warning)  
                        self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤにデータ追加できません", level=Qgis.Warning)   
-                       return               
+                       return  
+                       
+                       
+                  tgTextLayer = self.dlg.mMapLayerComboBox_2.currentLayer()
+            
+                  if tgTextLayer is None:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤ(テキスト)が指定されていません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤ(テキスト)が指定されていません", level=Qgis.Warning)   
+                       return
+                  
+            
+                  caps2 = tgTextLayer.dataProvider().capabilities()
+                  
+                  if not caps2 & QgsVectorDataProvider.AddFeatures:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤ(テキスト)にデータ追加できません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤ(テキスト)にデータ追加できません", level=Qgis.Warning)   
+                       return  
+                       
+                  tgImgLayer = self.dlg.mMapLayerComboBox_3.currentLayer()
+            
+                  if tgImgLayer is None:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤ(イメージ)が指定されていません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤ(イメージ)が指定されていません", level=Qgis.Warning)   
+                       return
+                  
+            
+                  caps3 = tgImgLayer.dataProvider().capabilities()
+                  
+                  if not caps2 & QgsVectorDataProvider.AddFeatures:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤ(イメージ)にデータ追加できません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤ(イメージ)にデータ追加できません", level=Qgis.Warning)   
+                       return                                                   
+                             
+                             
+                  
                                 
                   rdExcel = self.dlg.mQgsFileWidget.filePath()
             
@@ -236,8 +312,11 @@ class ReadReport:
                   wb = openpyxl.load_workbook(rdExcel)
             
                   ws = wb.worksheets[0]
+                  
+                  #   location list
+                  loclist = []
             
-            #    2行目から取得
+            #    2行目から取得    location
                   for row in ws.iter_rows(min_row=2):
                        attrs = []
                        for  cell in row:
@@ -250,17 +329,88 @@ class ReadReport:
                 
                             feat = QgsFeature(tgLayer.fields())
                             feat.setAttribute(u"日付",attrs[0])
-                            feat.setAttribute(2,attrs[1])                        
-                            feat.setAttribute(3,attrs[3])                        
-                            feat.setAttribute(4,float(attrs[5]))   
-                            feat.setAttribute(5,float(attrs[6]))   
+                            feat.setAttribute('user',attrs[1])                        
+                            feat.setAttribute(u"住所",attrs[3])                        
+                            feat.setAttribute(u"緯度",float(attrs[5]))   
+                            feat.setAttribute(u"経度",float(attrs[6]))   
+                            
+                                                        
+                            feat.setAttribute('transact_id',rdExcel)  
+                            
                             
                             feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(attrs[6]), float(attrs[5]))))
                             (res, outFeats) = tgLayer.dataProvider().addFeatures([feat])
                             
+                            location = []
+                            
                             if res:
                                  QgsMessageLog.logMessage("record out:" + str(outFeats[0][0])+ ":" + outFeats[0][1], 'ReadReport', level=Qgis.Info)
-                                        
+
+                                 location.append(outFeats[0][2])  #  user name
+                                 location.append(outFeats[0][1])  #   date time
+                                 location.append(outFeats[0][0])  #   fid
+                                 
+                                 loclist.append(location)
+                                 
+                            else:
+                                 QgsMessageLog.logMessage("Error:data write error" , 'ReadReport', level=Qgis.Info)
+                                 self.iface.messageBar().pushMessage(u"Error", "error:data write error", level=Qgis.Warning)   
+
+                                 return
+                                 
+                                 
+            #    2行目から取得    location
+                  for row in ws.iter_rows(min_row=2):
+                       attrs = []
+                       for  cell in row:
+                            attrs.append(cell.value)
+                       
+
+ 
+                       if attrs[2]  == "text" or attrs[2] == "voice":
+                            QgsMessageLog.logMessage("record:" + attrs[0]+ ":" + attrs[1] + ":" + attrs[2], 'ReadReport', level=Qgis.Info)
+                
+                            feat = QgsFeature(tgTextLayer.fields())
+                            
+                            nid = self.SearchNid( loclist, attrs[0], attrs[1])
+                            
+                            if nid > 0:
+                                 feat.setAttribute(u"日付",attrs[0])
+                            
+                                 feat.setAttribute('nid',nid)   
+                                 feat.setAttribute('user',attrs[1])                        
+                                 feat.setAttribute("kind",attrs[2])                        
+                                 feat.setAttribute("rtext",attrs[3])   
+   
+                            
+                                                        
+ 
+                                 (res, outFeats) = tgTextLayer.dataProvider().addFeatures([feat])
+                            
+                       elif attrs[2]  == "image":
+                            QgsMessageLog.logMessage("record:" + attrs[0]+ ":" + attrs[1] + ":" + attrs[2], 'ReadReport', level=Qgis.Info)
+                
+                            feat = QgsFeature(tgImgLayer.fields())
+                            
+                            nid = self.SearchNid( loclist, attrs[0], attrs[1])
+                            
+                            if nid > 0:
+                                 feat.setAttribute(u"日付",attrs[0])
+                            
+                                 feat.setAttribute('nid',nid)   
+                                 feat.setAttribute('user',attrs[1])                        
+                                 feat.setAttribute("kind",attrs[2])                        
+                                 feat.setAttribute("filename",attrs[4])   
+   
+                            
+                                                        
+ 
+                                 (res, outFeats) = tgImgLayer.dataProvider().addFeatures([feat])
+                            
+                                                
+                                 
+                                 
+                                                                                
             else:              
             #except:  
                   QgsMessageLog.logMessage(u"error:ファイルIOエラー" , 'ReadReport', level=Qgis.Warning)  
