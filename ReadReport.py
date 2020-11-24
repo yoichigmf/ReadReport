@@ -31,6 +31,9 @@ from qgis.core import *
 from .resources import *
 # Import the code for the dialog
 from .ReadReport_dialog import ReadReportDialog
+
+from .ReadReportDouro_dialog import ReadReportDouroDialog
+
 import os.path
 
 import openpyxl
@@ -38,6 +41,13 @@ from openpyxl_image_loader import SheetImageLoader
 import os
 import time
 from datetime import datetime
+
+#from qgissettingmanager import *
+
+#class MySettings(SettingManager):
+#    def __init__(self):
+#        SettingManager.__init__(self, my_plugin_name)
+#        self.add_setting( Bool("ReadReport", Scope.Project, True) )
 
 
 class ReadReport:
@@ -74,7 +84,8 @@ class ReadReport:
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
         self.first_start = None
-
+        self.first_start_douro = None
+        
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -184,7 +195,7 @@ class ReadReport:
             
         # will be set False in run()
         self.first_start = True
-
+        self.first_start_douro = True
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -194,6 +205,22 @@ class ReadReport:
                 action)
             self.iface.removeToolBarIcon(action)
 
+
+        #  同じ名前のレイヤが複数あると最初のやつがひっかかる
+    def src_layer_by_name(self, layerName):
+
+        for (id, layer) in QgsProject.instance().mapLayers().items():
+             if layer.name() == layerName:
+                 return layer
+        return None
+
+    def src_layer_by_id(self, layerId):
+
+        for (id, layer) in QgsProject.instance().mapLayers().items():
+             if id == layerID:
+                 return id, layer
+                 
+        return None
 
      #   return fid of location data nearist  dtime+ user   if not found  return -1
     def SearchNid(self, loclist, dtime, user):
@@ -208,6 +235,8 @@ class ReadReport:
         #dt1 = datetime(int(dd[0], int(dd[1]), int(dd[2]), int(tm[0]),int(tm[1]), int(tm[2]))
         dt1 = datetime.strptime(dtime, '%Y/%m/%d %H:%M:%S')
         
+        lat = None
+        lon = None
         for rec in loclist:
         
             if rec[0] == user:
@@ -219,6 +248,8 @@ class ReadReport:
                        if dt2 < dt1:
                             cdate = dt2
                             ret = rec[2]
+                            lat = rec[3]
+                            lon = rec[4] 
                   else:
                        if cdate  < dt1:
                             dst1 = dt1 - cdate
@@ -229,40 +260,32 @@ class ReadReport:
                             if dst2.total_seconds() > 0:
                                  if dst1.total_seconds() > dst2.total_seconds():
                                       cdata = dt2
-                                      ret = rec[2] 
+                                      ret = rec[2]
+                                      lat = rec[3]
+                                      lon = rec[4] 
                        
                   
         
-        return ret
+        return ret, lat, lon
         
     def runDouro(self):
         """Run method that performs all the real work"""
 
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start == True:
-            self.first_start = False
-            self.dlg = ReadReportDialog()
+        if self.first_start_douro == True:
+            self.first_start_douro = False
+            self.ddlg = ReadReportDouroDialog()
 
         # show the dialog
-        self.dlg.show()
+        self.ddlg.show()
         # Run the dialog event loop
-        result = self.dlg.exec_()
+        result = self.ddlg.exec_()
         
-    def run(self):
-        """Run method that performs all the real work"""
-
-        # Create the dialog with elements (after translation) and keep reference
-        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start == True:
-            self.first_start = False
-            self.dlg = ReadReportDialog()
-
-        # show the dialog
-        self.dlg.show()
-        # Run the dialog event loop
-        result = self.dlg.exec_()
-        # See if OK was pressed
+    def  read_saigai(self):
+       
+        result = 1
+        
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
@@ -271,7 +294,10 @@ class ReadReport:
     
             prjpath = QgsProject.instance().absolutePath() 
             
-            income_path = "income/images/"
+            #income_path = "income/images/"
+            
+            income_path = self.dlg.mQgsFileWidget_2.filePath()
+            
             imgpath = prjpath + "/" + income_path
 
             #try:  
@@ -328,7 +354,8 @@ class ReadReport:
                                 
                   rdExcel = self.dlg.mQgsFileWidget.filePath()
             
-                  if rdExcel is None:
+                  if not rdExcel:
+                       self.dlg.messageText.setPlainText(u"Excelファイルが指定されていません")
                        QgsMessageLog.logMessage(u"error:Excelファイルが指定されていません" , 'ReadReport', level=Qgis.Warning)  
                        self.iface.messageBar().pushMessage(u"Error", "error:Excelファイルが指定されていません", level=Qgis.Warning)   
                        return
@@ -353,8 +380,10 @@ class ReadReport:
                   #   location list
                   loclist = []
             
- 
+                  self.dlg.messageText.setPlainText(u"読み込み開始")
             #    2行目から取得    location
+            
+                  lcount = 0
                   for row in ws.iter_rows(min_row=2):
                   
                       
@@ -366,6 +395,9 @@ class ReadReport:
 
  
                        if attrs[2]  == "location":
+                       
+                            lcount = lcount + 1
+                            
                             QgsMessageLog.logMessage("record:" + attrs[0]+ ":" + attrs[1] + ":" + attrs[2], 'ReadReport', level=Qgis.Info)
                 
                             feat = QgsFeature(tgLayer.fields())
@@ -390,7 +422,9 @@ class ReadReport:
                                  location.append(outFeats[0][2])  #  user name
                                  location.append(outFeats[0][1])  #   date time
                                  location.append(outFeats[0][0])  #   fid
-                                 
+                                 location.append(outFeats[0][4])  #   緯度
+                                 location.append(outFeats[0][5])  #   経度     
+                                                            
                                  loclist.append(location)
                                  
                             else:
@@ -419,16 +453,17 @@ class ReadReport:
                             
                             nid = self.SearchNid( loclist, attrs[0], attrs[1])
                             
-                            if nid > 0:
+                            if nid[0] > 0:
                                  feat.setAttribute(u"日付",attrs[0])
                             
-                                 feat.setAttribute('nid',nid)   
+                                 feat.setAttribute('nid',nid[0])   
                                  feat.setAttribute('user',attrs[1])                        
                                  feat.setAttribute("kind",attrs[2])                        
-                                 feat.setAttribute("rtext",attrs[3])   
+                                 feat.setAttribute("ctext",attrs[3])   
    
-                            
-                                                        
+                                 feat.setAttribute("transact_id", exfname)   
+   
+                                 feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(nid[2]), float(nid[1]))))                
  
                                  (res, outFeats) = tgTextLayer.dataProvider().addFeatures([feat])
                             
@@ -446,13 +481,13 @@ class ReadReport:
                             nid = self.SearchNid( loclist, attrs[0], attrs[1])
                             image = image_loader.get(row_img)
                             
-                            if nid > 0:
+                            if nid[0] > 0:
                                  feat.setAttribute(u"日付",attrs[0])
                             
-                                 feat.setAttribute('nid',nid)   
+                                 feat.setAttribute('nid',nid[0])   
                                  feat.setAttribute('user',attrs[1])                        
                                  feat.setAttribute("kind",attrs[2])  
-                                 
+                                 feat.setAttribute("url",attrs[4]) 
                                  fpname = attrs[4][:-5]
                                  
                                  pd =  fpname.split( '/' )
@@ -466,8 +501,12 @@ class ReadReport:
                                  sfilename = income_path + tgfname
                                                        
                                  feat.setAttribute("filename",sfilename)   
-                                 #feat.setAttribute("image",image)   
                                  
+                                    
+                                 feat.setAttribute("transact_id", exfname)   
+                                 
+                                 #feat.setAttribute("image",image)   
+                                 feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(nid[2]), float(nid[1])))) 
                                  
                                  
                             
@@ -479,12 +518,60 @@ class ReadReport:
                             
                                                 
                                  
-                                 
+                  msg = str(lcount) + u"地点のデータを読み込みました"     
+                  self.dlg.messageText.setPlainText(msg)         
                                                                                 
             else:              
             #except:  
                   QgsMessageLog.logMessage(u"error:ファイルIOエラー" , 'ReadReport', level=Qgis.Warning)  
                   self.iface.messageBar().pushMessage(u"Error", "error:ファイルIOエラー", level=Qgis.Warning)   
                   return
+    
+        
+    def run(self):
+        """Run method that performs all the real work"""
+
+        # Create the dialog with elements (after translation) and keep reference
+        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
+        if self.first_start == True:
+            self.first_start = False
             
-            pass
+            self.dlg = ReadReportDialog()
+            
+            self.dlg.readButton.clicked.connect(self.read_saigai)
+            
+            #  保存値の読み込み
+            proj = QgsProject.instance()
+            tgtfolder= proj.readEntry("ReadReport", "store_saigai", "income/saigai/images/" )[0]
+            
+            rptlayer = proj.readEntry("ReadReort", "report_layer_saigai", u"災害調査情報" )[0]
+            
+            txtlayer = proj.readEntry("ReadReort", "text_layer_saigai", "saigai_reptext" )[0]
+            
+            imglayer = proj.readEntry("ReadReort", "img_layer_saigai", "saigai_repimage" )[0]
+            
+            
+            #tgtfolder = "income/bousai/images/"
+            #self.dlg.mQgsFileWidget_2.filePath()
+            self.dlg.mQgsFileWidget_2.setFilePath(tgtfolder)
+            
+            cIlayer = self.src_layer_by_name( rptlayer)
+            self.dlg.mMapLayerComboBox.setLayer(cIlayer)
+  
+
+            txlayer = self.src_layer_by_name( txtlayer)
+            self.dlg.mMapLayerComboBox_2.setLayer(txlayer)
+            
+ 
+            imlayer = self.src_layer_by_name( imglayer)
+            self.dlg.mMapLayerComboBox_3.setLayer(imlayer)
+            
+            
+        # show the dialog
+        self.dlg.show()
+        # Run the dialog event loop
+        result = self.dlg.exec_()
+        
+        return
+        
+       
