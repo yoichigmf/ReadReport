@@ -268,19 +268,7 @@ class ReadReport:
         
         return ret, lat, lon
         
-    def runDouro(self):
-        """Run method that performs all the real work"""
 
-        # Create the dialog with elements (after translation) and keep reference
-        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start_douro == True:
-            self.first_start_douro = False
-            self.ddlg = ReadReportDouroDialog()
-
-        # show the dialog
-        self.ddlg.show()
-        # Run the dialog event loop
-        result = self.ddlg.exec_()
         
     def  read_saigai(self):
        
@@ -526,7 +514,54 @@ class ReadReport:
                   QgsMessageLog.logMessage(u"error:ファイルIOエラー" , 'ReadReport', level=Qgis.Warning)  
                   self.iface.messageBar().pushMessage(u"Error", "error:ファイルIOエラー", level=Qgis.Warning)   
                   return
-    
+ 
+    def read_douro(self):
+           pass
+                  
+    def runDouro(self):
+        """Run method that performs all the real work"""
+
+        # Create the dialog with elements (after translation) and keep reference
+        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
+        if self.first_start_douro == True:
+            self.first_start_douro = False
+            self.ddlg = ReadReportDouroDialog()
+            
+            
+            
+            
+            self.ddlg.readButton.clicked.connect(self.read_douro)
+            
+            #  保存値の読み込み
+            proj = QgsProject.instance()
+            tgtfolder= proj.readEntry("ReadReport", "store_douro", "income/douro/images/" )[0]
+            
+            rptlayer = proj.readEntry("ReadReort", "report_layer_saigai", u"道路調査情報" )[0]
+            
+            txtlayer = proj.readEntry("ReadReort", "text_layer_saigai", "douro_reptext" )[0]
+            
+            imglayer = proj.readEntry("ReadReort", "img_layer_saigai", "douro_repimage" )[0]
+            
+            
+
+            self.ddlg.mQgsFileWidget_2.setFilePath(tgtfolder)
+            
+            cIlayer = self.src_layer_by_name( rptlayer)
+            self.ddlg.mMapLayerComboBox.setLayer(cIlayer)
+  
+
+            txlayer = self.src_layer_by_name( txtlayer)
+            self.ddlg.mMapLayerComboBox_2.setLayer(txlayer)
+            
+ 
+            imlayer = self.src_layer_by_name( imglayer)
+            self.ddlg.mMapLayerComboBox_3.setLayer(imlayer)
+            
+
+        # show the dialog
+        self.ddlg.show()
+        # Run the dialog event loop
+        result = self.ddlg.exec_()
         
     def run(self):
         """Run method that performs all the real work"""
@@ -551,8 +586,7 @@ class ReadReport:
             imglayer = proj.readEntry("ReadReort", "img_layer_saigai", "saigai_repimage" )[0]
             
             
-            #tgtfolder = "income/bousai/images/"
-            #self.dlg.mQgsFileWidget_2.filePath()
+
             self.dlg.mQgsFileWidget_2.setFilePath(tgtfolder)
             
             cIlayer = self.src_layer_by_name( rptlayer)
