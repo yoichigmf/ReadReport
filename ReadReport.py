@@ -515,11 +515,266 @@ class ReadReport:
                   self.iface.messageBar().pushMessage(u"Error", "error:ファイルIOエラー", level=Qgis.Warning)   
                   return
  
-    def read_douro(self):
+    def  read_excel( self, dlg ):
+    
         result = 1
         
         #   処理対象ダイアログ
+        tgdlg = dlg
+        if result:
+            # Do something useful here - delete the line containing pass and
+            # substitute with your code.
+            
+          
+    
+            prjpath = QgsProject.instance().absolutePath() 
+            
+
+            
+            #income_path = self.ddlg.mQgsFileWidget_2.filePath()
+            income_path = tgdlg.mQgsFileWidget_2.filePath()
+            imgpath = prjpath + "/" + income_path
+
+            #try:  
+            if 1:
+              #  selected layer to store
+                  tgLayer = self.ddlg.mMapLayerComboBox.currentLayer()
+            
+                  if tgLayer is None:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤが指定されていません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤが指定されていません", level=Qgis.Warning)   
+                       return
+                  
+            
+                  caps = tgLayer.dataProvider().capabilities()
+                  
+                  if not caps & QgsVectorDataProvider.AddFeatures:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤにデータ追加できません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤにデータ追加できません", level=Qgis.Warning)   
+                       return  
+                       
+                       
+                  tgTextLayer = self.ddlg.mMapLayerComboBox_2.currentLayer()
+            
+                  if tgTextLayer is None:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤ(テキスト)が指定されていません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤ(テキスト)が指定されていません", level=Qgis.Warning)   
+                       return
+                  
+            
+                  caps2 = tgTextLayer.dataProvider().capabilities()
+                  
+                  if not caps2 & QgsVectorDataProvider.AddFeatures:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤ(テキスト)にデータ追加できません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤ(テキスト)にデータ追加できません", level=Qgis.Warning)   
+                       return  
+                       
+                  tgImgLayer = self.ddlg.mMapLayerComboBox_3.currentLayer()
+            
+                  if tgImgLayer is None:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤ(イメージ)が指定されていません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤ(イメージ)が指定されていません", level=Qgis.Warning)   
+                       return
+                  
+            
+                  caps3 = tgImgLayer.dataProvider().capabilities()
+                  
+                  if not caps2 & QgsVectorDataProvider.AddFeatures:
+                       QgsMessageLog.logMessage("error:調査レポートレイヤ(イメージ)にデータ追加できません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage("Error", "error:調査レポートレイヤ(イメージ)にデータ追加できません", level=Qgis.Warning)   
+                       return                                                   
+                             
+                             
+                  
+                                
+                  rdExcel = tgdlg.mQgsFileWidget.filePath()
+            
+                  if not rdExcel:
+                       tgdlg.messageText.setPlainText(u"Excelファイルが指定されていません")
+                       QgsMessageLog.logMessage(u"error:Excelファイルが指定されていません" , 'ReadReport', level=Qgis.Warning)  
+                       self.iface.messageBar().pushMessage(u"Error", "error:Excelファイルが指定されていません", level=Qgis.Warning)   
+                       return
+            
+            
+                  exf = rdExcel.split('\\')
+                  
+                  #    excel file name
+                  exfname = exf[-1]
+                  
+                  
+                  #  excel work book
+                  wb = openpyxl.load_workbook(rdExcel)
+            
+                  #  excel work sheet
+                  ws = wb.worksheets[0]
+                  
+                  # image loader for work sheet
+                  
+                  image_loader = SheetImageLoader(ws)
+                  
+                  #   location list
+                  loclist = []
+            
+                  tgdlg .messageText.setPlainText(u"読み込み開始")
+            #    2行目から取得    location
+            
+                  lcount = 0
+                  for row in ws.iter_rows(min_row=2):
+                  
+                      
+                       
+                       attrs = []
+                       for  cell in row:
+                            attrs.append(cell.value)
+                       
+
+ 
+                       if attrs[2]  == "location":
+                       
+                            lcount = lcount + 1
+                            
+                            QgsMessageLog.logMessage("record:" + attrs[0]+ ":" + attrs[1] + ":" + attrs[2], 'ReadReport', level=Qgis.Info)
+                
+                            feat = QgsFeature(tgLayer.fields())
+                            feat.setAttribute(u"日付",attrs[0])
+                            feat.setAttribute('user',attrs[1])                        
+                            feat.setAttribute(u"住所",attrs[3])                        
+                            feat.setAttribute(u"緯度",float(attrs[5]))   
+                            feat.setAttribute(u"経度",float(attrs[6]))   
+                            
+                                                        
+                            feat.setAttribute('transact_id', exfname)  
+                            
+                            
+                            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(attrs[6]), float(attrs[5]))))
+                            (res, outFeats) = tgLayer.dataProvider().addFeatures([feat])
+                            
+                            location = []
+                            
+                            if res:
+                                 QgsMessageLog.logMessage("record out:" + str(outFeats[0][0])+ ":" + outFeats[0][1], 'ReadReport', level=Qgis.Info)
+
+                                 location.append(outFeats[0][2])  #  user name
+                                 location.append(outFeats[0][1])  #   date time
+                                 location.append(outFeats[0][0])  #   fid
+                                 location.append(outFeats[0][4])  #   緯度
+                                 location.append(outFeats[0][5])  #   経度     
+                                                            
+                                 loclist.append(location)
+                                 
+                            else:
+                                 QgsMessageLog.logMessage("Error:data write error" , 'ReadReport', level=Qgis.Info)
+                                 self.iface.messageBar().pushMessage(u"Error", "error:data write error", level=Qgis.Warning)   
+
+                                 return
+                                 
+                                 
+                                 
+            #    2行目から取得    text voice  image  の取得
+                  row_count = 1
+                  for row in ws.iter_rows(min_row=2):
+                  
+                       row_count = row_count + 1
+                       attrs = []
+                       for  cell in row:
+                            attrs.append(cell.value)
+                       
+
+ 
+                       if attrs[2]  == "text" or attrs[2] == "voice":
+                            QgsMessageLog.logMessage("record:" + attrs[0]+ ":" + attrs[1] + ":" + attrs[2], 'ReadReport', level=Qgis.Info)
+                
+                            feat = QgsFeature(tgTextLayer.fields())
+                            
+                            nid = self.SearchNid( loclist, attrs[0], attrs[1])
+                            
+                            if nid[0] > 0:
+                                 feat.setAttribute(u"日付",attrs[0])
+                            
+                                 feat.setAttribute('nid',nid[0])   
+                                 feat.setAttribute('user',attrs[1])                        
+                                 feat.setAttribute("kind",attrs[2])                        
+                                 feat.setAttribute("ctext",attrs[3])   
+   
+                                 feat.setAttribute("transact_id", exfname)   
+   
+                                 feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(nid[2]), float(nid[1]))))                
+ 
+                                 (res, outFeats) = tgTextLayer.dataProvider().addFeatures([feat])
+                            
+                       elif attrs[2]  == "image":
+                       
+                            row_img = "D" + str(row_count)
+                            
+                            if image_loader.image_in( row_img ):
+                                   QgsMessageLog.logMessage("image in!: row="+str(row_count) , 'ReadReport', level=Qgis.Info)
+                                   
+                            QgsMessageLog.logMessage("record:" + attrs[0]+ ":" + attrs[1] + ":" + attrs[2], 'ReadReport', level=Qgis.Info)
+                
+                            feat = QgsFeature(tgImgLayer.fields())
+                            
+                            nid = self.SearchNid( loclist, attrs[0], attrs[1])
+                            image = image_loader.get(row_img)
+                            
+                            if nid[0] > 0:
+                                 feat.setAttribute(u"日付",attrs[0])
+                            
+                                 feat.setAttribute('nid',nid[0])   
+                                 feat.setAttribute('user',attrs[1])                        
+                                 feat.setAttribute("kind",attrs[2])  
+                                 feat.setAttribute("url",attrs[4]) 
+                                 fpname = attrs[4][:-5]
+                                 
+                                 pd =  fpname.split( '/' )
+                                 
+                                 tgfname = pd[-1]
+                                 
+                                 setfname = imgpath + tgfname
+                                 QgsMessageLog.logMessage("filename:" + str(nid) + " f:"+ setfname, 'ReadReport', level=Qgis.Info)
+                                 image.save( setfname )
+                                 
+                                 sfilename = income_path + tgfname
+                                                       
+                                 feat.setAttribute("filename",sfilename)   
+                                 
+                                    
+                                 feat.setAttribute("transact_id", exfname)   
+                                 
+                                 #feat.setAttribute("image",image)   
+                                 feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(nid[2]), float(nid[1])))) 
+                                 
+                                 
+                            
+                                  #income_path = "\income\images\"
+                                  #imgpath = prjpath + income_path
+                        
+ 
+                                 (res, outFeats) = tgImgLayer.dataProvider().addFeatures([feat])
+                            
+                                                
+                                 
+                  msg = str(lcount) + u"地点のデータを読み込みました"     
+                  tgdlg.messageText.setPlainText(msg)         
+                                                                                
+            else:              
+            #except:  
+                  QgsMessageLog.logMessage(u"error:ファイルIOエラー" , 'ReadReport', level=Qgis.Warning)  
+                  self.iface.messageBar().pushMessage(u"Error", "error:ファイルIOエラー", level=Qgis.Warning)   
+                  return
+
+
+  
+    
+ 
+    def read_douro(self):
+   
+        
+        #   処理対象ダイアログ
         tgdlg = self.ddlg
+        ret = self.read_excel( tgdlg )
+        
+        result = 0
+        
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
@@ -783,11 +1038,11 @@ class ReadReport:
             proj = QgsProject.instance()
             tgtfolder= proj.readEntry("ReadReport", "store_douro", "income/douro/images/" )[0]
             
-            rptlayer = proj.readEntry("ReadReort", "report_layer_saigai", u"道路調査情報" )[0]
+            rptlayer = proj.readEntry("ReadReort", "report_layer_douro", u"道路調査情報" )[0]
             
-            txtlayer = proj.readEntry("ReadReort", "text_layer_saigai", "douro_reptext" )[0]
+            txtlayer = proj.readEntry("ReadReort", "text_layer_douro", "douro_reptext" )[0]
             
-            imglayer = proj.readEntry("ReadReort", "img_layer_saigai", "douro_repimage" )[0]
+            imglayer = proj.readEntry("ReadReort", "img_layer_douro", "douro_repimage" )[0]
             
             
 
