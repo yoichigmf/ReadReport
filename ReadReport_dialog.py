@@ -26,6 +26,10 @@ import os
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
+from qgis.core import Qgis
+#from qgis.PyQt5.QtWidgets  QSizePolicy
+
+from qgis.gui import QgsMessageBar
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -41,7 +45,11 @@ class ReadReportDialog(QtWidgets.QDialog, FORM_CLASS):
         # self.<objectname>, and you can use autoconnect slots - see
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
+        
+        #self.bar = QgsMessageBar()
+        #self.bar.setSizePolicy( QSizePolicy.Minimum, QSizePolicy.Fixed )
         self.setupUi(self)
+        #self.verticalLayout_2.addWidget(self.bar)
 
     def accept(self):
         pass

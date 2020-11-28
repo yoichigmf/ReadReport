@@ -43,6 +43,8 @@ import time
 from datetime import datetime
 
 #from qgissettingmanager import *
+from PyQt5.QtWidgets import QMessageBox
+
 
 #class MySettings(SettingManager):
 #    def __init__(self):
@@ -274,7 +276,7 @@ class ReadReport:
             
  
  
-    def  read_excel( self, dlg ):
+    def  read_excel( self, dlg, topstr ):
     
         result = 1
         
@@ -360,7 +362,13 @@ class ReadReport:
                   #    excel file name
                   exfname = exf[-1]
                   
+                  if not exfname.startswith(topstr): 
                   
+                      ret = QMessageBox.question(None, "確認", "ファイル名が"+topstr+ "で開始されてません。読み込みますか？", QMessageBox.Ok, QMessageBox.Cancel)
+                  
+                      if ret == QMessageBox.Cancel:
+                          return
+                        
                   #  excel work book
                   wb = openpyxl.load_workbook(rdExcel)
             
@@ -526,7 +534,11 @@ class ReadReport:
                
         #   処理対象ダイアログ
         tgdlg = self.dlg
-        ret = self.read_excel( tgdlg )
+        ret = self.read_excel( tgdlg , "saigai")
+        
+
+        
+        #ret = QMessageBox.question(None, "確認", "本当によろしいですか？", QMessageBox.Ok, QMessageBox.Cancel)
         
         # 設定値の保存
 
@@ -555,7 +567,7 @@ class ReadReport:
         
         #   処理対象ダイアログ
         tgdlg = self.ddlg
-        ret = self.read_excel( tgdlg )
+        ret = self.read_excel( tgdlg, "douro" )
         
         # 設定値の保存
         
