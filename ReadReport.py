@@ -362,6 +362,7 @@ class ReadReport:
                   #    excel file name
                   exfname = exf[-1]
                   
+                  #  check top string of excel file
                   if not exfname.startswith(topstr): 
                   
                       ret = QMessageBox.question(None, "確認", "ファイル名が"+topstr+ "で開始されてません。読み込みますか？", QMessageBox.Ok, QMessageBox.Cancel)
@@ -369,6 +370,12 @@ class ReadReport:
                       if ret == QMessageBox.Cancel:
                           return
                         
+                        
+                    
+                  #  check  transaction id
+                  
+                  
+                  
                   #  excel work book
                   wb = openpyxl.load_workbook(rdExcel)
             
