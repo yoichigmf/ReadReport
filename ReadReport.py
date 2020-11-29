@@ -272,9 +272,76 @@ class ReadReport:
         
 
         
+            #   指定 transact_id のデータを削除する
+    def deleteTransact( self, tgdlg, exfname ):
+        tgLayer = tgdlg.mMapLayerComboBox.currentLayer()
+        
+        tgLayer.selectByExpression('"transact_id"=\''+exfname + '\'', QgsVectorLayer.SetSelection )
+        
+        selected_fid = []
+        
 
+        for feature in tgLayer.selectedFeatures():
+            selected_fid.append( feature.id())
             
- 
+        tgLayer.dataProvider().deleteFeatures(selected_fid)
+        tgLayer.removeSelection()
+        
+        
+        tgTextLayer = tgdlg.mMapLayerComboBox_2.currentLayer()
+        
+        
+        tgTextLayer.selectByExpression('"transact_id"=\''+exfname + '\'', QgsVectorLayer.SetSelection )
+        
+        selected_fid = []
+        
+
+        for feature in tgTextLayer.selectedFeatures():
+            selected_fid.append( feature.id())
+            
+        tgTextLayer.dataProvider().deleteFeatures(selected_fid)
+        tgTextLayer.removeSelection()
+        
+        
+        tgImgLayer  = tgdlg.mMapLayerComboBox_3.currentLayer()
+        
+        tgImgLayer.selectByExpression('"transact_id"=\''+exfname + '\'', QgsVectorLayer.SetSelection )
+        
+        selected_fid = []
+        
+
+        for feature in tgImgLayer.selectedFeatures():
+            selected_fid.append( feature.id())
+            
+        tgImgLayer.dataProvider().deleteFeatures(selected_fid)
+        tgImgLayer.removeSelection()
+        
+
+
+
+            #   同一 transact_id のデータがロードされているかどうかチェックする
+    def checkTransact( self, tgdlg, exfname ):
+    
+        tgLayer = tgdlg.mMapLayerComboBox.currentLayer()
+        QgsMessageLog.logMessage("exp  "+ '"transact_id" = \'' + exfname + '\'', 'ReadReport', level=Qgis.Info) 
+        tgLayer.selectByExpression('"transact_id" = \''+exfname + '\'', QgsVectorLayer.SetSelection )
+        
+        selected_fid = []
+        
+        retflag = 0
+        
+        for feature in tgLayer.selectedFeatures():
+  
+            selected_fid.append( feature.id())
+            QgsMessageLog.logMessage("select "+ str(feature.id()), 'ReadReport', level=Qgis.Info) 
+            
+        if len(selected_fid) > 0:
+            retflag = 1
+            
+        
+        tgLayer.removeSelection()
+        
+        return retflag
  
     def  read_excel( self, dlg, topstr ):
     
@@ -374,6 +441,29 @@ class ReadReport:
                     
                   #  check  transaction id
                   
+                  if self.checkTransact( dlg, exfname ):
+                        msgBox = QMessageBox()
+                        msgBox.setText('同一ファイルがすでに読み込まれてます')
+                        rmapButton = msgBox.addButton("削除して追加", QMessageBox.ActionRole)                 
+                        appButton = msgBox.addButton("追加", QMessageBox.ActionRole)
+
+                        
+                        cancelButton = msgBox.addButton("キャンセル", QMessageBox.ActionRole)
+                        
+                        msgBox.setDefaultButton(rmapButton )
+                        msgBox.exec_()
+                        
+                        if msgBox.clickedButton() == cancelButton:
+                            return
+                            
+                        elif msgBox.clickedButton() == rmapButton:
+                            tgdlg.messageText.setPlainText(u"Old data remove")
+                            
+                                 #   指定transact_id の既存データを削除する
+                            self.deleteTransact( dlg, exfname )
+                            #print("Bad")
+                        
+                        #ret = QMessageBox.question(None, "確認", "ファイル名が"+topstr+ "で開始されてません。読み込みますか？", QMessageBox.Ok, QMessageBox.Cancel)
                   
                   
                   #  excel work book
