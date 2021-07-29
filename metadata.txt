@@ -23,7 +23,7 @@ hasProcessingProvider=no
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=python　Excel
+tags=python,Excel
 
 homepage=https://github.com/yoichigmf/ReadReport
 category=Plugins
